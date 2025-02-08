@@ -129,11 +129,10 @@ pub async fn command(args: Args, _json: bool) -> Result<()> {
     let hostname = configs.get_host();
     let client = GQLClient::new_authorized(&configs)?;
     let linked_project = configs.get_linked_project().await?;
-    let prefix: PathBuf = configs.get_closest_linked_project_directory()?.into();
 
-    let path = match args.path {
+    let project_files_path = match args.path {
         Some(path) => path,
-        None => prefix.clone(),
+        None => configs.get_closest_linked_project_directory()?.into(),
     };
 
     let project = get_project(&client, &configs, linked_project.project.clone()).await?;
@@ -190,7 +189,7 @@ pub async fn command(args: Args, _json: bool) -> Result<()> {
 
     {
         let mut archive = Builder::new(&mut parz);
-        let mut builder = WalkBuilder::new(path);
+        let mut builder = WalkBuilder::new(project_files_path.clone());
         builder.add_custom_ignore_filename(".railwayignore");
         if !args.no_gitignore {
             builder.add_custom_ignore_filename(".gitignore");
@@ -222,7 +221,7 @@ pub async fn command(args: Args, _json: bool) -> Result<()> {
                 {
                     continue;
                 }
-                let stripped = PathBuf::from(".").join(path.strip_prefix(&prefix)?);
+                let stripped = PathBuf::from(".").join(path.strip_prefix(&project_files_path)?);
                 archive.append_path_with_name(path, stripped)?;
             }
         } else {
@@ -235,7 +234,7 @@ pub async fn command(args: Args, _json: bool) -> Result<()> {
                 {
                     continue;
                 }
-                let stripped = PathBuf::from(".").join(path.strip_prefix(&prefix)?);
+                let stripped = PathBuf::from(".").join(path.strip_prefix(&project_files_path)?);
                 archive.append_path_with_name(path, stripped)?;
             }
         }
